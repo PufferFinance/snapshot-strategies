@@ -19,17 +19,24 @@ export async function strategy(
   // We want to use `getPastVotes` because of the delegation happening on the contract
   // We want to use the past timestamp to get the votes at the start of the previous week
 
-  // Date.now() returns milliseconds, so we divide by 1000 to get seconds
-  // 7 * 24 * 60 * 60 = 7 days * 24 hours * 60 minutes * 60 seconds = 604800 seconds
-  // Past timestamp will always return the votes at the end of the previous interval (-1 second)
-  const pastTimestamp = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60 - 1;
+  // Calculate the timestamp at the end of the most recent complete 7-day period
+  // This ensures alignment with contract's 7-day voting periods
+  const SECONDS_PER_WEEK = 7 * 24 * 60 * 60;
+  // Get the current timestamp in seconds
+  const currentTimestampInSeconds = Math.floor(Date.now() / 1000);
+  // Calculate the current period based on the current timestamp
+  const currentPeriod = Math.floor(
+    currentTimestampInSeconds / SECONDS_PER_WEEK
+  );
+  // Calculate the timestamp at the end of the previous period
+  const previousPeriodEnd = currentPeriod * SECONDS_PER_WEEK - 1;
 
   const multi = new Multicaller(network, provider, abi);
 
   addresses.forEach((address) =>
     multi.call(address, options.address, 'getPastVotes', [
       address,
-      pastTimestamp.toString()
+      previousPeriodEnd.toString()
     ])
   );
 
